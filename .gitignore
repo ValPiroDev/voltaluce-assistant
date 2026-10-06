@@ -1,0 +1,8 @@
+# Secrets: only .env.example is committed
+.env
+
+# Local tooling
+.claude/
+*.log
+.DS_Store
+Thumbs.db
