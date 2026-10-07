@@ -12,7 +12,10 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
-      "position": [0, 300],
+      "position": [
+        0,
+        300
+      ],
       "webhookId": "073a9c48-da03-47e6-bc0a-498694bb831c"
     },
     {
@@ -25,18 +28,29 @@
       "name": "Validate request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 300]
+      "position": [
+        220,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
           "conditions": [
             {
               "id": "a4d483c8-4070-405e-90ea-cdef2bf65bc6",
               "leftValue": "={{ $json.valid }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ],
           "combinator": "and"
@@ -47,7 +61,10 @@
       "name": "Request valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [440, 300]
+      "position": [
+        440,
+        300
+      ]
     },
     {
       "parameters": {
@@ -61,20 +78,37 @@
       "name": "Get supply",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
-      "position": [680, 200],
+      "position": [
+        680,
+        200
+      ],
       "alwaysOutputData": true,
-      "credentials": { "postgres": { "id": "FbkrPRfVEvPyfvHA", "name": "Postgres account" } }
+      "credentials": {
+        "postgres": {
+          "id": "FbkrPRfVEvPyfvHA",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 3 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
           "conditions": [
             {
               "id": "5a1f0c2e-1111-4a7b-9c3d-000000000001",
               "leftValue": "={{ $json.supply_id }}",
               "rightValue": "",
-              "operator": { "type": "string", "operation": "exists", "singleValue": true }
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -85,18 +119,30 @@
       "name": "Supply found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [920, 200]
+      "position": [
+        920,
+        200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
           "conditions": [
             {
               "id": "c37d6bf4-32d7-4a43-8128-42154a9930fe",
               "leftValue": "={{ $json.last_value === null || Number($('Validate request').item.json.value) >= Number($json.last_value) }}",
               "rightValue": "",
-              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -107,7 +153,10 @@
       "name": "Value accepted?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [1160, 100]
+      "position": [
+        1160,
+        100
+      ]
     },
     {
       "parameters": {
@@ -121,82 +170,186 @@
       "name": "Insert reading",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
-      "position": [1400, 0],
+      "position": [
+        1400,
+        0
+      ],
       "alwaysOutputData": true,
-      "credentials": { "postgres": { "id": "FbkrPRfVEvPyfvHA", "name": "Postgres account" } }
+      "credentials": {
+        "postgres": {
+          "id": "FbkrPRfVEvPyfvHA",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json.id\n  ? {\n      registered: true,\n      duplicate: false,\n      reading_id: Number($json.id),\n      value: Number($json.value),\n      read_at: $json.read_at,\n      supply_type: $('Validate request').item.json.supply_type,\n      meter_code: $('Get supply').item.json.meter_code,\n      previous_value: $('Get supply').item.json.last_value === null ? null : Number($('Get supply').item.json.last_value)\n    }\n  : {\n      registered: true,\n      duplicate: true,\n      message: 'This reading was already registered for the same request',\n      request_id: $('Validate request').item.json.request_id\n    } }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       },
       "id": "5a1f0c2e-1111-4a7b-9c3d-000000000003",
       "name": "Respond 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [1640, 0]
+      "position": [
+        1640,
+        0
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ {\n  error: 'value_below_last_reading',\n  message: 'valore ' + $('Validate request').item.json.value + ' is lower than the last registered reading ' + Number($json.last_value) + ' of ' + $json.last_read_at,\n  last_value: Number($json.last_value),\n  last_read_at: $json.last_read_at\n} }}",
-        "options": { "responseCode": 422 }
+        "options": {
+          "responseCode": 422
+        }
       },
       "id": "5a1f0c2e-1111-4a7b-9c3d-000000000004",
       "name": "Respond 422",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [1400, 220]
+      "position": [
+        1400,
+        220
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ {\n  error: 'not_found',\n  message: 'No active ' + $('Validate request').item.json.supply_type + ' supply for customer ' + $('Validate request').item.json.customer_code\n} }}",
-        "options": { "responseCode": 404 }
+        "responseBody": "={{ {\n  error: 'not_found',\n  message: 'No active ' + $('Validate request').item.json.supply_type + ' supply for customer ' + $('Validate request').item.json.customer_code,\n  say_to_customer: 'Il codice cliente ' + $('Validate request').item.json.customer_code + ' esiste o non esiste, ma non ha una fornitura ' + ($('Validate request').item.json.supply_type === 'gas' ? 'gas' : 'luce') + ' attiva: per questa fornitura non posso registrare letture.'\n} }}",
+        "options": {
+          "responseCode": 404
+        }
       },
       "id": "5a1f0c2e-1111-4a7b-9c3d-000000000005",
       "name": "Respond 404",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [1160, 340]
+      "position": [
+        1160,
+        340
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { error: $json.error, message: $json.message } }}",
-        "options": { "responseCode": "={{ $json.status }}" }
+        "options": {
+          "responseCode": "={{ $json.status }}"
+        }
       },
       "id": "5a1f0c2e-1111-4a7b-9c3d-000000000006",
       "name": "Respond 400/401",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [680, 480]
+      "position": [
+        680,
+        480
+      ]
     }
   ],
   "connections": {
-    "Webhook": { "main": [[{ "node": "Validate request", "type": "main", "index": 0 }]] },
-    "Validate request": { "main": [[{ "node": "Request valid?", "type": "main", "index": 0 }]] },
-    "Request valid?": {
+    "Webhook": {
       "main": [
-        [{ "node": "Get supply", "type": "main", "index": 0 }],
-        [{ "node": "Respond 400/401", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Validate request",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Get supply": { "main": [[{ "node": "Supply found?", "type": "main", "index": 0 }]] },
+    "Validate request": {
+      "main": [
+        [
+          {
+            "node": "Request valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request valid?": {
+      "main": [
+        [
+          {
+            "node": "Get supply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 400/401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get supply": {
+      "main": [
+        [
+          {
+            "node": "Supply found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Supply found?": {
       "main": [
-        [{ "node": "Value accepted?", "type": "main", "index": 0 }],
-        [{ "node": "Respond 404", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Value accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 404",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Value accepted?": {
       "main": [
-        [{ "node": "Insert reading", "type": "main", "index": 0 }],
-        [{ "node": "Respond 422", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Insert reading",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 422",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Insert reading": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+    "Insert reading": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "settings": {
     "executionOrder": "v1",
