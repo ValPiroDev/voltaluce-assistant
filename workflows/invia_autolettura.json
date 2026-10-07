@@ -219,7 +219,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ {\n  error: 'not_found',\n  message: 'No active ' + $('Validate request').item.json.supply_type + ' supply for customer ' + $('Validate request').item.json.customer_code,\n  say_to_customer: 'Il codice cliente ' + $('Validate request').item.json.customer_code + ' esiste o non esiste, ma non ha una fornitura ' + ($('Validate request').item.json.supply_type === 'gas' ? 'gas' : 'luce') + ' attiva: per questa fornitura non posso registrare letture.'\n} }}",
+        "responseBody": "={{ {\n  error: 'not_found',\n  message: 'No active ' + $('Validate request').item.json.supply_type + ' supply for customer ' + $('Validate request').item.json.customer_code,\n  say_to_customer: 'Per il codice cliente ' + $('Validate request').item.json.customer_code + ' non risulta una fornitura ' + ($('Validate request').item.json.supply_type === 'gas' ? 'gas' : 'luce') + ' attiva: non posso registrare letture per questa fornitura.'\n} }}",
         "options": {
           "responseCode": 404
         }
