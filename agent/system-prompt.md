@@ -50,7 +50,7 @@ REGOLE
 | Name | `get_ultima_bolletta` |
 | Description | `Restituisce l'ultima bolletta emessa per un cliente: importo, periodo, scadenza, stato di pagamento e tipo di fornitura. Usalo quando il cliente chiede informazioni sulla sua bolletta. Richiede il codice cliente nel formato CL-00000.` |
 | Method | `POST` |
-| URL | `https://<tunnel-host>.trycloudflare.com/webhook/get-ultima-bolletta` |
+| URL | the public tunnel URL printed by `scripts/start_tunnel.ps1`, followed by `/webhook/get-ultima-bolletta`. Type it literally, e.g. `https://xxxx-yyyy.trycloudflare.com/webhook/get-ultima-bolletta`. Do not use `{{ }}`: ElevenLabs treats that as a dynamic variable. |
 | Headers | `Content-Type: application/json` and `x-api-key: <value of WEBHOOK_API_KEY from .env>` |
 | Body parameters | one parameter, see below |
 
