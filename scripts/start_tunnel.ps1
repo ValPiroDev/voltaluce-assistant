@@ -5,7 +5,7 @@ $port = 5679
 $exe = "C:\Program Files (x86)\cloudflared\cloudflared.exe"
 if (-not (Test-Path $exe)) { $exe = "cloudflared" }   # fall back to PATH
 Write-Host "Starting quick tunnel to http://localhost:$port ..."
-& $exe tunnel --url "http://localhost:$port" --no-autoupdate 2>&1 | ForEach-Object {
+& $exe tunnel --url "http://localhost:$port" --protocol http2 --no-autoupdate 2>&1 | ForEach-Object {
     if ($_ -match "https://[a-z0-9-]+\.trycloudflare\.com") {
         Write-Host "`n==> Public URL: $($Matches[0])" -ForegroundColor Green
         Write-Host "==> Webhook base: $($Matches[0])/webhook/`n"
