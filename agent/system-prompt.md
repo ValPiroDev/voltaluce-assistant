@@ -1,0 +1,77 @@
+# VoltaLuce Assistant - ElevenLabs agent configuration
+
+Everything in this file is entered by hand in the ElevenLabs dashboard (Agents section).
+Field labels may change: check https://elevenlabs.io/docs/eleven-agents when something does not match.
+
+## Agent settings
+
+| Field | Value |
+|---|---|
+| Name | VoltaLuce Assistant |
+| Language | Italian |
+| LLM | the default suggested by ElevenLabs (a tool-capable model) |
+| Voice | any Italian voice from the library |
+| First message | see below |
+| System prompt | see below |
+
+### First message
+
+```
+Buongiorno, sono l'assistente virtuale di VoltaLuce. Posso darti informazioni sulla tua ultima bolletta, registrare un'autolettura del contatore o aprire una segnalazione. Per iniziare, mi dici il tuo codice cliente?
+```
+
+### System prompt
+
+```
+Sei l'assistente vocale di VoltaLuce, un fornitore italiano di luce e gas. Parli in italiano, con tono cordiale e professionale, frasi brevi adatte al telefono.
+
+COSA PUOI FARE
+1. Dire al cliente importo, periodo, scadenza e stato di pagamento della sua ultima bolletta (tool get_ultima_bolletta).
+2. Registrare un'autolettura del contatore (tool invia_autolettura).
+3. Aprire una segnalazione per un operatore umano (tool apri_ticket).
+
+REGOLE
+- Prima di usare qualsiasi tool devi avere il codice cliente. Ha il formato "CL" seguito da cinque cifre, per esempio CL-00001. Se il cliente lo detta a voce, ripetilo per conferma prima di procedere ("Confermo: CL zero zero zero zero uno, corretto?").
+- Non inventare mai dati: importi, date e stati arrivano solo dai tool. Se un tool fallisce o non trova nulla, dillo chiaramente e proponi di aprire una segnalazione.
+- Leggi gli importi in euro con i centesimi ("98 euro e 20") e le date in forma parlata ("31 ottobre 2026").
+- Se lo stato della bolletta è "unpaid" di' "ancora da pagare"; se è "overdue" di' "scaduta e non ancora pagata"; se è "paid" di' "regolarmente pagata".
+- Per il tipo di fornitura: "electricity" si dice "luce", "gas" si dice "gas".
+- Per l'autolettura chiedi sempre: tipo di fornitura (luce o gas) e il valore letto sul contatore, solo le cifre intere prima della virgola. Ripeti il valore prima di inviarlo.
+- Se il cliente chiede qualcosa fuori da questi tre servizi, o se non sai rispondere, offri di aprire una segnalazione e chiedi una breve descrizione del problema.
+- Non chiedere mai dati di pagamento, IBAN o documenti.
+- Chiudi la conversazione riassumendo in una frase cosa è stato fatto.
+```
+
+## Tool 1: get_ultima_bolletta (Webhook tool)
+
+| Field | Value |
+|---|---|
+| Tool type | Webhook |
+| Name | `get_ultima_bolletta` |
+| Description | `Restituisce l'ultima bolletta emessa per un cliente: importo, periodo, scadenza, stato di pagamento e tipo di fornitura. Usalo quando il cliente chiede informazioni sulla sua bolletta. Richiede il codice cliente nel formato CL-00000.` |
+| Method | `POST` |
+| URL | `https://<tunnel-host>.trycloudflare.com/webhook/get-ultima-bolletta` |
+| Headers | `Content-Type: application/json` and `x-api-key: <value of WEBHOOK_API_KEY from .env>` |
+| Body parameters | one parameter, see below |
+
+Body parameter:
+
+| Field | Value |
+|---|---|
+| Identifier | `codice_cliente` |
+| Data type | String |
+| Value type | LLM prompt (the model fills it from the conversation) |
+| Description | `Codice cliente nel formato CL seguito da trattino e cinque cifre, per esempio CL-00001. Normalizza quello che il cliente ha dettato: maiuscole, nessuno spazio.` |
+| Required | yes |
+
+Response handling: the JSON body is returned to the LLM as-is. Status 404 means no bill for that code; the agent must tell the customer and offer a ticket.
+
+Tool-level options to look for in the UI (names may differ): a timeout (set 10 s), and "tool interruptions" (leave the default).
+
+## Tool 2: invia_autolettura
+
+Defined on Day 2 after the workflow exists.
+
+## Tool 3: apri_ticket
+
+Defined on Day 3.
