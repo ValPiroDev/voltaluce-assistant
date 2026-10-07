@@ -68,9 +68,30 @@ Response handling: the JSON body is returned to the LLM as-is. Status 404 means 
 
 Tool-level options to look for in the UI (names may differ): a timeout (set 10 s), and "tool interruptions" (leave the default).
 
-## Tool 2: invia_autolettura
+## Tool 2: invia_autolettura (Webhook tool)
 
-Defined on Day 2 after the workflow exists.
+| Field | Value |
+|---|---|
+| Tool type | Webhook |
+| Name | `invia_autolettura` |
+| Description | `Registra l'autolettura del contatore di un cliente per una fornitura (luce o gas). Usalo solo dopo aver ripetuto al cliente il valore letto e ottenuto conferma. Richiede codice cliente, tipo di fornitura e valore numerico intero letto sul contatore.` |
+| Method | `POST` |
+| URL | same tunnel base URL as tool 1, followed by `/webhook/invia-autolettura` |
+| Headers | `Content-Type: application/json` and `x-api-key: <value of WEBHOOK_API_KEY from .env>` |
+| Body parameters | four parameters, see below |
+
+Body parameters:
+
+| Identifier | Data type | Value type | Description (LLM prompt) / value |
+|---|---|---|---|
+| `codice_cliente` | String | LLM prompt | `Codice cliente nel formato CL-00000, maiuscolo, senza spazi.` |
+| `tipo_fornitura` | String | LLM prompt | `Tipo di fornitura: esattamente "luce" oppure "gas".` |
+| `valore` | String | LLM prompt | `Valore letto sul contatore, solo cifre, senza unità di misura. Esempio: 15800.` |
+| `conversation_id` | String | Dynamic variable | `system__conversation_id` (built-in ElevenLabs variable, used as idempotency key) |
+
+Response handling: 200 with `duplicate:false` => confirm to the customer with the registered value; 200 with `duplicate:true` => tell the customer the reading was already registered; 422 => read `message`, explain that the value is lower than the last reading (`last_value`) and ask to check the meter; 404 => no active supply of that type; 400 => repeat the question for the wrong field.
+
+Note: `valore` is declared as String on purpose. Numbers dictated by voice may contain spaces or commas; the webhook normalizes and validates them (400 if not numeric or negative).
 
 ## Tool 3: apri_ticket
 
