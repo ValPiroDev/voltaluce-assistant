@@ -52,6 +52,10 @@ services:
       # Exposed to Code/expression nodes as $env.WEBHOOK_API_KEY.
       WEBHOOK_API_KEY: ${WEBHOOK_API_KEY}
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      # Lets Code nodes require("crypto") to verify the ElevenLabs HMAC signature.
+      NODE_FUNCTION_ALLOW_BUILTIN: crypto
+      # Shared secret ElevenLabs uses to sign the post-call webhook.
+      ELEVENLABS_POSTCALL_SECRET: ${ELEVENLABS_POSTCALL_SECRET}
       N8N_RUNNERS_ENABLED: "true"
     ports:
       - "${N8N_HOST_PORT}:5678"
