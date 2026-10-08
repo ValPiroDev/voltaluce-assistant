@@ -1,0 +1,34 @@
+{
+  "name": "error_handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e0000000-0000-4000-8000-000000000001",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Written by n8n's error workflow for every unhandled failure in the other workflows.\n-- No foreign keys on purpose: this must work even when the application tables are broken.\nINSERT INTO workflow_errors (workflow_name, execution_id, node_name, message, details)\nVALUES ($1, $2, $3, $4, $5::jsonb)\nRETURNING id, created_at;",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.workflow?.name ?? 'unknown',\n  ($json.execution?.id ?? '').toString(),\n  $json.execution?.lastNodeExecuted ?? null,\n  $json.execution?.error?.message ?? 'unknown error',\n  JSON.stringify({\n    execution_url: $json.execution?.url ?? null,\n    mode: $json.execution?.mode ?? null,\n    retry_of: $json.execution?.retryOf ?? null,\n    error_name: $json.execution?.error?.name ?? null,\n    description: $json.execution?.error?.description ?? null,\n    stack: ($json.execution?.error?.stack ?? '').toString().slice(0, 2000)\n  })\n] }}"
+        }
+      },
+      "id": "e0000000-0000-4000-8000-000000000002",
+      "name": "Log error",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [220, 300],
+      "credentials": { "postgres": { "id": "FbkrPRfVEvPyfvHA", "name": "Postgres account" } }
+    }
+  ],
+  "connections": {
+    "Error Trigger": { "main": [[{ "node": "Log error", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
