@@ -69,7 +69,7 @@ Body parameter:
 
 Response handling: the JSON body is returned to the LLM as-is. Status 404 means no bill for that code; the agent must tell the customer and offer a ticket.
 
-Tool-level options to look for in the UI (names may differ): a timeout (set 10 s), and "tool interruptions" (leave the default).
+Tool-level options (names may differ): a timeout (set 10 s), "tool interruptions" (default), and **Error handling mode = passthrough** on EVERY tool. With the default "auto", a non-2xx response (404, 422) reaches the LLM only as a generic failure: the agent says "errore tecnico" and may retry the call. With passthrough the JSON body is passed to the LLM, so the agent can read `message` and `say_to_customer`.
 
 ## Tool 2: invia_autolettura (Webhook tool)
 
