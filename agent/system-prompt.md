@@ -96,6 +96,26 @@ Response handling: 200 with `duplicate:false` => confirm to the customer with th
 
 Note: `valore` is declared as String on purpose. Numbers dictated by voice may contain spaces or commas; the webhook normalizes and validates them (400 if not numeric or negative).
 
-## Tool 3: apri_ticket
+## Tool 3: apri_ticket (Webhook tool)
 
-Defined on Day 3.
+| Field | Value |
+|---|---|
+| Tool type | Webhook |
+| Name | `apri_ticket` |
+| Description | `Apre una segnalazione per un operatore umano quando il cliente ha un problema che non puoi risolvere con gli altri tool, o quando un tool fallisce. Chiedi prima al cliente una breve descrizione del problema. Richiede codice cliente e descrizione.` |
+| Method | `POST` |
+| URL | same tunnel base URL, followed by `/webhook/apri-ticket` |
+| Headers | `Content-Type: application/json` and `x-api-key: <value of WEBHOOK_API_KEY from .env>` |
+| Error handling mode | passthrough |
+| Body parameters | four parameters, see below |
+
+Body parameters:
+
+| Identifier | Data type | Value type | Description (LLM prompt) / value |
+|---|---|---|---|
+| `codice_cliente` | String | LLM prompt | `Codice cliente nel formato CL-00000, maiuscolo, senza spazi.` |
+| `descrizione` | String | LLM prompt | `Descrizione del problema in italiano, tra 10 e 1000 caratteri, riformulata in modo chiaro a partire da ciò che ha detto il cliente.` |
+| `priorita` | String | LLM prompt | `Priorita: "bassa", "media" o "alta". Usa "alta" solo per guasti, odore di gas o assenza di fornitura; altrimenti "media".` (optional) |
+| `conversation_id` | String | Dynamic variable | `system__conversation_id` (one ticket per conversation) |
+
+Response handling: 201 => read `say_to_customer` (ticket number and name); 200 with `duplicate:true` => tell the customer a ticket is already open in this conversation; 404 => customer code not found, ask to repeat it; 400 => ask again for the missing or invalid field.

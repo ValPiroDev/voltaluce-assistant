@@ -1,0 +1,203 @@
+{
+  "name": "apri_ticket",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "apri-ticket",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "82836221-f2fd-4ce6-bab8-764d5561e993",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [0, 300],
+      "webhookId": "0d348e99-5507-4e6e-974b-d872b79b8002"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// One request = one item in, exactly one item out.\n// Output: { valid:true, customer_code, description, priority, request_id }\n//     or: { valid:false, status, error, message }\nconst req = $input.first().json;\n\nconst fail = (status, error, message) =>\n  [{ json: { valid: false, status, error, message } }];\n\n// --- 1. Authentication -------------------------------------------------\nconst expected = $env.WEBHOOK_API_KEY;\nif (!expected) return fail(500, 'server_misconfigured', 'WEBHOOK_API_KEY is not set on the server');\nconst provided = req.headers['x-api-key'];\nif (!provided || provided !== expected) return fail(401, 'unauthorized', 'Missing or invalid x-api-key header');\n\n// --- 2. codice_cliente -------------------------------------------------\nconst customerCode = (req.body?.codice_cliente ?? '').toString().trim().toUpperCase();\nif (!/^CL-\\d{5}$/.test(customerCode)) return fail(400, 'bad_request', 'codice_cliente is required and must match CL-00000');\n\n// --- 3. descrizione ------------------------------------------------------\nconst description = (req.body?.descrizione ?? '').toString().trim();\nif (description.length < 10 || description.length > 1000) return fail(400, 'bad_request', 'descrizione must be between 10 and 1000 characters');\n\n// --- 4. priorita (optional, Italian or English, default medium) ---------\nconst PRIORITIES = { bassa: 'low', low: 'low', media: 'medium', medium: 'medium', alta: 'high', high: 'high' };\nconst rawPriority = (req.body?.priorita ?? '').toString().trim().toLowerCase();\n// Unknown or missing value falls back to medium: an explicit NULL would NOT\n// trigger the column DEFAULT and would violate NOT NULL.\nconst priority = PRIORITIES[rawPriority] ?? 'medium';\n\n// --- 5. conversation_id (idempotency key: one ticket per conversation) ---\nconst conversationId = (req.body?.conversation_id ?? '').toString().trim();\nif (!conversationId) return fail(400, 'bad_request', 'conversation_id is required');\n\nreturn [{\n  json: {\n    valid: true,\n    customer_code: customerCode,\n    description,\n    priority,\n    request_id: conversationId,\n  },\n}];"
+      },
+      "id": "0cdc0253-b3aa-4b1c-bb56-7017220df5f4",
+      "name": "Validate request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+          "conditions": [
+            {
+              "id": "a4d483c8-4070-405e-90ea-cdef2bf65bc6",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8f7b0521-09ba-4ea8-b4b0-f0ad880ab3b5",
+      "name": "Request valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: $json.error, message: $json.message } }}",
+        "options": { "responseCode": "={{ $json.status }}" }
+      },
+      "id": "e3009a02-06be-49f6-9623-5c2f2fa7464c",
+      "name": "Respond 400/401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [680, 480]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Customer lookup by code. Zero rows => 404.\nSELECT\n    c.id,\n    c.first_name\nFROM customers c\nWHERE c.customer_code = $1;",
+        "options": { "queryReplacement": "={{ $json.customer_code }}" }
+      },
+      "id": "8731af8f-06f0-43ac-ac41-1a528d79a456",
+      "name": "Get customer",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [680, 200],
+      "alwaysOutputData": true,
+      "credentials": { "postgres": { "id": "FbkrPRfVEvPyfvHA", "name": "Postgres account" } }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 3 },
+          "conditions": [
+            {
+              "id": "5a1f0c2e-1111-4a7b-9c3d-000000000001",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "exists", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "60598fe0-f721-4a8c-831c-fbb128c32888",
+      "name": "Customer found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [920, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  error: 'not_found',\n  message: 'No customer with code ' + $('Validate request').item.json.customer_code,\n  say_to_customer: 'Non trovo nessun cliente con il codice ' + $('Validate request').item.json.customer_code + '. Le chiedo di ricontrollare il codice cliente.'\n} }}",
+        "options": { "responseCode": 404 }
+      },
+      "id": "8ebdcc86-7469-4fef-9237-6c97278fba15",
+      "name": "Respond 404",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1160, 340]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Idempotent insert: one ticket per conversation. Duplicate request_id => no row.\nINSERT INTO tickets (customer_id, description, priority, request_id)\nVALUES ($1, $2, $3, $4)\nON CONFLICT (request_id) DO NOTHING\nRETURNING id, status, created_at;",
+        "options": {
+          "queryReplacement": "={{ $json.id }},{{ $('Validate request').item.json.description }},{{ $('Validate request').item.json.priority }},{{ $('Validate request').item.json.request_id }}"
+        }
+      },
+      "id": "8a7c33ad-28fc-49b7-9a91-d6620bbc9387",
+      "name": "Insert ticket",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [1160, 100],
+      "alwaysOutputData": true,
+      "credentials": { "postgres": { "id": "FbkrPRfVEvPyfvHA", "name": "Postgres account" } }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 3 },
+          "conditions": [
+            {
+              "id": "b07a5cf0-9210-483c-ad83-cdfd69154191",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "exists", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4b6144aa-2c77-44aa-b156-260f3401e09b",
+      "name": "Ticket created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [1400, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  registered: true,\n  duplicate: false,\n  ticket_id: Number($json.id),\n  status: $json.status,\n  priority: $('Validate request').item.json.priority,\n  created_at: $json.created_at,\n  say_to_customer: 'Ho aperto la segnalazione numero ' + Number($json.id) + ' per ' + $('Get customer').item.json.first_name + '. Un operatore la contatterà al più presto.'\n} }}",
+        "options": { "responseCode": 201 }
+      },
+      "id": "cb6c5d4f-2f25-4be5-ad7c-29b995d2e692",
+      "name": "Respond 201",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1640, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  registered: true,\n  duplicate: true,\n  request_id: $('Validate request').item.json.request_id,\n  say_to_customer: 'Risulta già una segnalazione aperta in questa conversazione: non ne apro una seconda. Un operatore la contatterà al più presto.'\n} }}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "e243a234-4e49-4a31-8afa-ec0601ff6445",
+      "name": "Respond 200 duplicate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1640, 220]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Validate request", "type": "main", "index": 0 }]] },
+    "Validate request": { "main": [[{ "node": "Request valid?", "type": "main", "index": 0 }]] },
+    "Request valid?": {
+      "main": [
+        [{ "node": "Get customer", "type": "main", "index": 0 }],
+        [{ "node": "Respond 400/401", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get customer": { "main": [[{ "node": "Customer found?", "type": "main", "index": 0 }]] },
+    "Customer found?": {
+      "main": [
+        [{ "node": "Insert ticket", "type": "main", "index": 0 }],
+        [{ "node": "Respond 404", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insert ticket": { "main": [[{ "node": "Ticket created?", "type": "main", "index": 0 }]] },
+    "Ticket created?": {
+      "main": [
+        [{ "node": "Respond 201", "type": "main", "index": 0 }],
+        [{ "node": "Respond 200 duplicate", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none"
+  }
+}
