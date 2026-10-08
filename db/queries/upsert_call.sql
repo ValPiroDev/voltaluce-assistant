@@ -18,3 +18,6 @@ ON CONFLICT (conversation_id) DO UPDATE SET
     transcript   = EXCLUDED.transcript,
     metadata     = EXCLUDED.metadata
 RETURNING id, (xmax = 0) AS inserted;   -- xmax = 0 means a fresh row, otherwise an update
+-- n8n note: pass the six values as ONE expression returning an array,
+--   {{ [ $json.conversation_id, ..., JSON.stringify($json.metadata) ] }}
+-- The comma-separated form of "Query Parameters" would split the JSON and the transcript on their commas.

@@ -14,7 +14,10 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
-      "position": [0, 300],
+      "position": [
+        0,
+        300
+      ],
       "webhookId": "d0000000-0000-4000-8000-00000000post"
     },
     {
@@ -27,18 +30,29 @@
       "name": "Verify signature",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 300]
+      "position": [
+        220,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
           "conditions": [
             {
               "id": "d0000000-0000-4000-8000-000000000003",
               "leftValue": "={{ $json.valid }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ],
           "combinator": "and"
@@ -49,30 +63,47 @@
       "name": "Signature valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [440, 300]
+      "position": [
+        440,
+        300
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { error: $json.error, message: $json.message } }}",
-        "options": { "responseCode": "={{ $json.status }}" }
+        "options": {
+          "responseCode": "={{ $json.status }}"
+        }
       },
       "id": "d0000000-0000-4000-8000-000000000005",
       "name": "Respond 401/500",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [680, 480]
+      "position": [
+        680,
+        480
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 3 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
           "conditions": [
             {
               "id": "d0000000-0000-4000-8000-000000000006",
               "leftValue": "={{ $json.ignore }}",
               "rightValue": "",
-              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -83,64 +114,139 @@
       "name": "Other event type?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
-      "position": [680, 200]
+      "position": [
+        680,
+        200
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { received: true, ignored: true } }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       },
       "id": "d0000000-0000-4000-8000-000000000008",
       "name": "Respond 200 ignored",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [920, 60]
+      "position": [
+        920,
+        60
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
         "query": "-- Upsert: ElevenLabs may redeliver the same event; the last delivery wins.\nINSERT INTO calls (conversation_id, customer_id, duration_sec, outcome, transcript, metadata)\nVALUES (\n    $1,\n    (SELECT id FROM customers WHERE customer_code = $2),\n    $3::integer,\n    $4,\n    $5,\n    $6::jsonb\n)\nON CONFLICT (conversation_id) DO UPDATE SET\n    customer_id  = EXCLUDED.customer_id,\n    duration_sec = EXCLUDED.duration_sec,\n    outcome      = EXCLUDED.outcome,\n    transcript   = EXCLUDED.transcript,\n    metadata     = EXCLUDED.metadata\nRETURNING id, (xmax = 0) AS inserted;",
         "options": {
-          "queryReplacement": "={{ $json.conversation_id }},{{ $json.customer_code }},{{ $json.duration_sec }},{{ $json.outcome }},{{ $json.transcript }},{{ JSON.stringify($json.metadata) }}"
+          "queryReplacement": "={{ [ $json.conversation_id, $json.customer_code, $json.duration_sec, $json.outcome, $json.transcript, JSON.stringify($json.metadata) ] }}"
         }
       },
       "id": "d0000000-0000-4000-8000-000000000009",
       "name": "Upsert call",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
-      "position": [920, 300],
-      "credentials": { "postgres": { "id": "FbkrPRfVEvPyfvHA", "name": "Postgres account" } }
+      "position": [
+        920,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "FbkrPRfVEvPyfvHA",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { received: true, call_id: Number($json.id), inserted: $json.inserted } }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       },
       "id": "d0000000-0000-4000-8000-000000000010",
       "name": "Respond 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [1160, 300]
+      "position": [
+        1160,
+        300
+      ]
     }
   ],
   "connections": {
-    "Webhook": { "main": [[{ "node": "Verify signature", "type": "main", "index": 0 }]] },
-    "Verify signature": { "main": [[{ "node": "Signature valid?", "type": "main", "index": 0 }]] },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify signature": {
+      "main": [
+        [
+          {
+            "node": "Signature valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Signature valid?": {
       "main": [
-        [{ "node": "Other event type?", "type": "main", "index": 0 }],
-        [{ "node": "Respond 401/500", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Other event type?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 401/500",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Other event type?": {
       "main": [
-        [{ "node": "Respond 200 ignored", "type": "main", "index": 0 }],
-        [{ "node": "Upsert call", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Respond 200 ignored",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upsert call",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Upsert call": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+    "Upsert call": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "settings": {
     "executionOrder": "v1",
