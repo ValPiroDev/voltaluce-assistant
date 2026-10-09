@@ -73,7 +73,7 @@ bash scripts/test_post_call.sh
 
 ## Connecting ElevenLabs
 
-1. Start the tunnel and keep the window open: `powershell -File scripts/start_tunnel.ps1`.
+1. One command does everything (Docker, stack, tunnel, n8n restart, smoke test): `powershell -ExecutionPolicy Bypass -File scriptsdemo.ps1`. Keep the window open; it prints the four URLs to paste into ElevenLabs. Manual alternative: `scripts/start_tunnel.ps1`.
    It prints the public URL. Put it in `.env` as `N8N_WEBHOOK_URL` and run `docker compose up -d n8n`.
 2. In the ElevenLabs dashboard create the agent from `agent/system-prompt.md`: prompt, first message,
    Italian voice, and the three Webhook tools with the public URL, the `x-api-key` header and
