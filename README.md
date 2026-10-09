@@ -40,7 +40,7 @@ db/queries/               the SQL used by the workflows, with comments
 workflows/*.json          n8n workflows, importable
 agent/system-prompt.md    agent prompt, first message and the three tool definitions
 scripts/                  tunnel starter and curl smoke tests for every webhook
-docs/                     architecture: diagrams, data model, design decisions
+docs/                     architecture (diagrams, data model, decisions) and the demo script
 ```
 
 ## Quick start
